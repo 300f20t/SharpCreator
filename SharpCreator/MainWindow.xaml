@@ -17,13 +17,13 @@
         <Canvas>
             <!-- Перемещаемое окно 1 -->
             <Border x:Name="MovableWindow1" Background="LightBlue" BorderBrush="Black" BorderThickness="2" Width="800" Height="491"
-                Canvas.Left="167" Canvas.Top="197" MouseDown="MovableWindow_MouseDown" MouseMove="MovableWindow_MouseMove" MouseUp="MovableWindow_MouseUp">
+                Canvas.Left="49" Canvas.Top="338" MouseDown="MovableWindow_MouseDown" MouseMove="MovableWindow_MouseMove" MouseUp="MovableWindow_MouseUp">
                 <Image Name="DirectXImage" Grid.Column="1"/>
             </Border>
 
             <!-- Перемещаемое окно 2 -->
             <Border x:Name="MovableWindow2" Background="LightGreen" BorderBrush="Black" BorderThickness="2" Width="593" Height="255"
-                Canvas.Left="700" Canvas.Top="78" MouseDown="MovableWindow_MouseDown" MouseMove="MovableWindow_MouseMove" MouseUp="MovableWindow_MouseUp" HorizontalAlignment="Left" VerticalAlignment="Top">
+                Canvas.Left="715" Canvas.Top="33" MouseDown="MovableWindow_MouseDown" MouseMove="MovableWindow_MouseMove" MouseUp="MovableWindow_MouseUp" HorizontalAlignment="Left" VerticalAlignment="Top">
                 <DockPanel>
                     <!-- Панель управления -->
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Width="580">

@@ -11,8 +11,8 @@ namespace SharpCreator
         private float _yaw;   // Угол поворота вокруг оси Y (горизонтальный поворот)
         private float _pitch; // Угол поворота вокруг оси X (вертикальный поворот)
 
-        private float _moveSpeed = 0.5f; // Скорость перемещения камеры
-        private float _rotationSpeed = 0.01f; // Скорость вращения камеры
+        private float _moveSpeed = 1; // Скорость перемещения камеры
+        private float _rotationSpeed = 1f; // Скорость вращения камеры
 
         public Matrix ViewMatrix => Matrix.LookAtLH(_position, _target, _up);
 
