@@ -11,8 +11,8 @@ namespace SharpCreator
         private float _yaw;   // Угол поворота вокруг оси Y (горизонтальный поворот)
         private float _pitch; // Угол поворота вокруг оси X (вертикальный поворот)
 
-        private float _moveSpeed = 1; // Скорость перемещения камеры
-        private float _rotationSpeed = 1f; // Скорость вращения камеры
+        private float _moveSpeed = 1f; // Скорость перемещения камеры
+        private float _rotationSpeed = 0.5f; // Скорость вращения камеры
 
         public Matrix ViewMatrix => Matrix.LookAtLH(_position, _target, _up);
 
@@ -33,7 +33,7 @@ namespace SharpCreator
             _pitch += deltaY * _rotationSpeed;
 
             // Ограничение вертикального поворота
-            _pitch = MathUtil.Clamp(_pitch, -MathUtil.PiOverTwo, MathUtil.PiOverTwo);
+            _pitch = MathUtil.Clamp(_pitch, -MathUtil.PiOverTwo + 0.01f, MathUtil.PiOverTwo - 0.01f);
 
             // Обновление направления на основе углов вращения
             var rotation = Matrix.RotationYawPitchRoll(_yaw, _pitch, 0);
@@ -65,6 +65,18 @@ namespace SharpCreator
         {
             _position += _up * amount * _moveSpeed;
             _target += _up * amount * _moveSpeed;
+        }
+
+        // Установка скорости перемещения
+        public void SetMoveSpeed(float speed)
+        {
+            _moveSpeed = speed;
+        }
+
+        // Установка скорости вращения
+        public void SetRotationSpeed(float speed)
+        {
+            _rotationSpeed = speed;
         }
     }
 }
