@@ -8,11 +8,12 @@ namespace SharpCreator
         private Vector3 _target;
         private Vector3 _up;
 
-        private float _yaw;   // Угол поворота вокруг оси Y (горизонтальный поворот)
-        private float _pitch; // Угол поворота вокруг оси X (вертикальный поворот)
+        private Quaternion _rotation; // Используем Quaternion для вращения
 
         private float _moveSpeed = 1f; // Скорость перемещения камеры
         private float _rotationSpeed = 0.5f; // Скорость вращения камеры
+
+        private Vector3 _forward; // Вектор направления вперед
 
         public Matrix ViewMatrix => Matrix.LookAtLH(_position, _target, _up);
 
@@ -22,49 +23,59 @@ namespace SharpCreator
             _target = target;
             _up = up;
 
-            _yaw = 0;
-            _pitch = 0;
+            _rotation = Quaternion.Identity; // Изначально без вращения
+            UpdateForwardVector();
+        }
+
+        private void UpdateForwardVector()
+        {
+            var rotationMatrix = Matrix.RotationQuaternion(_rotation);
+            _forward = Vector3.TransformNormal(new Vector3(0, 0, 1), rotationMatrix);
         }
 
         // Вращение камеры на основе движения мыши
         public void Rotate(float deltaX, float deltaY)
         {
-            _yaw += deltaX * _rotationSpeed;
-            _pitch += deltaY * _rotationSpeed;
+            var yawRotation = Quaternion.RotationAxis(_up, deltaX * _rotationSpeed);
+            var pitchRotation = Quaternion.RotationAxis(Vector3.Cross(_forward, _up), -deltaY * _rotationSpeed);
+            _rotation = yawRotation * _rotation;
+            _rotation = pitchRotation * _rotation;
 
             // Ограничение вертикального поворота
-            _pitch = MathUtil.Clamp(_pitch, -MathUtil.PiOverTwo + 0.01f, MathUtil.PiOverTwo - 0.01f);
+            var pitch = (float)Math.Asin(MathUtil.Clamp((float)_rotation.Y, -1.0f, 1.0f));
+            if (pitch < -MathF.PI / 2 + 0.01f || pitch > MathF.PI / 2 - 0.01f)
+            {
+                _rotation = Quaternion.RotationYawPitchRoll(_rotation.Y, pitch, 0);
+            }
 
-            // Обновление направления на основе углов вращения
-            var rotation = Matrix.RotationYawPitchRoll(_yaw, _pitch, 0);
-            var direction = Vector3.TransformCoordinate(new Vector3(0, 0, 1), rotation);
-
-            _target = _position + direction;
+            UpdateForwardVector();
+            _target = _position + _forward;
         }
 
         // Перемещение камеры вперёд/назад
         public void MoveForward(float amount)
         {
-            var forward = Vector3.Normalize(_target - _position);
-            _position += forward * amount * _moveSpeed;
-            _target += forward * amount * _moveSpeed;
+            var moveAmount = _forward * amount * _moveSpeed;
+            _position += moveAmount;
+            _target += moveAmount;
         }
 
         // Перемещение камеры влево/вправо
         public void Strafe(float amount)
         {
-            var forward = Vector3.Normalize(_target - _position);
-            var right = Vector3.Cross(_up, forward); // Вычисление вектора вправо
+            var right = Vector3.Cross(_up, _forward); // Вычисление вектора вправо
             right.Normalize();
-            _position += right * amount * _moveSpeed;
-            _target += right * amount * _moveSpeed;
+            var moveAmount = right * amount * _moveSpeed;
+            _position += moveAmount;
+            _target += moveAmount;
         }
 
         // Перемещение камеры вверх/вниз
         public void MoveUp(float amount)
         {
-            _position += _up * amount * _moveSpeed;
-            _target += _up * amount * _moveSpeed;
+            var moveAmount = _up * amount * _moveSpeed;
+            _position += moveAmount;
+            _target += moveAmount;
         }
 
         // Установка скорости перемещения

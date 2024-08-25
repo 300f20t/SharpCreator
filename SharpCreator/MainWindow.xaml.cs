@@ -1,14 +1,14 @@
-﻿using SharpDX;
-using SharpDX.Direct3D9;
-using System;
+﻿using System;
 using System.Windows;
-using System.Windows.Interop;
-using System.Windows.Media.Imaging;
-using SharpDX.Mathematics.Interop;
-using WpfPoint = System.Windows.Point;
-using System.IO;
-using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Controls;
+using System.Windows.Interop;
+using SharpDX;
+using SharpDX.Direct3D9;
+using System.Windows.Media.Imaging;
+using System.Linq;
+using System.IO;
+using SharpDX.Mathematics.Interop;
 
 namespace SharpCreator
 {
@@ -22,18 +22,18 @@ namespace SharpCreator
         private IndexBuffer _indexBuffer;
         private Camera _camera;
         private bool _isRightMouseButtonDown = false;
-        private WpfPoint _lastMousePosition;
+        private System.Windows.Point _lastMousePosition; // Используем System.Windows.Point
         private string currentDirectory;
         private bool isDragging = false;
-        private System.Windows.Point clickPosition;
         private UIElement currentWindow;
+        private System.Windows.Point _clickPosition; // Используем System.Windows.Point
 
         public MainWindow()
         {
             InitializeComponent();
             LoadDirectory(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
             InitializeDirectX();
-            _camera = new Camera(new Vector3(0, 5, -10), new Vector3(0, 0, 0), new Vector3(0, 1, 0));
+            _camera = new Camera(new SharpDX.Vector3(0, 5, -10), new SharpDX.Vector3(0, 0, 0), new SharpDX.Vector3(0, 1, 0));
             MouseDown += MainWindow_MouseDown;
             MouseUp += MainWindow_MouseUp;
             MouseMove += MainWindow_MouseMove;
@@ -77,7 +77,7 @@ namespace SharpCreator
             LoadDirectory(currentDirectory);
         }
 
-        private void FileList_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void FileList_DoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (FileList.SelectedItem is FileItem selectedItem)
             {
@@ -92,13 +92,43 @@ namespace SharpCreator
             }
         }
 
+        private void MainWindow_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.RightButton == MouseButtonState.Pressed)
+            {
+                _isRightMouseButtonDown = true;
+                _lastMousePosition = e.GetPosition(this);
+            }
+        }
+
+        private void MainWindow_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (e.RightButton == MouseButtonState.Released)
+            {
+                _isRightMouseButtonDown = false;
+            }
+        }
+
+        private void MainWindow_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_isRightMouseButtonDown)
+            {
+                var currentPosition = e.GetPosition(this);
+                var deltaX = (float)(currentPosition.X - _lastMousePosition.X);
+                var deltaY = (float)(currentPosition.Y - _lastMousePosition.Y);
+                _camera.Rotate(deltaX * 0.01f, deltaY * 0.01f);
+                _lastMousePosition = currentPosition; 
+                Render();
+            }
+        }
+
         private void MovableWindow_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
             {
                 isDragging = true;
                 currentWindow = sender as UIElement;
-                clickPosition = e.GetPosition(this);
+                _clickPosition = e.GetPosition(this); 
                 currentWindow.CaptureMouse();
             }
         }
@@ -107,14 +137,14 @@ namespace SharpCreator
         {
             if (isDragging && currentWindow != null)
             {
-                System.Windows.Point currentMousePosition = e.GetPosition(this);
-                double offsetX = currentMousePosition.X - clickPosition.X;
-                double offsetY = currentMousePosition.Y - clickPosition.Y;
-                double newLeft = Canvas.GetLeft(currentWindow) + offsetX;
-                double newTop = Canvas.GetTop(currentWindow) + offsetY;
+                var currentMousePosition = e.GetPosition(this);
+                var offsetX = currentMousePosition.X - _clickPosition.X;
+                var offsetY = currentMousePosition.Y - _clickPosition.Y;
+                var newLeft = Canvas.GetLeft(currentWindow) + offsetX;
+                var newTop = Canvas.GetTop(currentWindow) + offsetY;
                 Canvas.SetLeft(currentWindow, newLeft);
                 Canvas.SetTop(currentWindow, newTop);
-                clickPosition = currentMousePosition;
+                _clickPosition = currentMousePosition;
             }
         }
 
@@ -163,13 +193,17 @@ namespace SharpCreator
             var indices = parser.GetIndexBuffer();
 
             _vertexBuffer = new VertexBuffer(_device, CustomVertex.Stride * vertices.Length, Usage.WriteOnly, VertexFormat.Position | VertexFormat.Diffuse, Pool.Managed);
-            DataStream stream = _vertexBuffer.Lock(0, 0, LockFlags.None);
-            stream.WriteRange(vertices);
+            using (var stream = _vertexBuffer.Lock(0, 0, LockFlags.None))
+            {
+                stream.WriteRange(vertices);
+            }
             _vertexBuffer.Unlock();
 
             _indexBuffer = new IndexBuffer(_device, sizeof(short) * indices.Length, Usage.WriteOnly, Pool.Managed, true);
-            stream = _indexBuffer.Lock(0, 0, LockFlags.None);
-            stream.WriteRange(indices);
+            using (var stream = _indexBuffer.Lock(0, 0, LockFlags.None))
+            {
+                stream.WriteRange(indices);
+            }
             _indexBuffer.Unlock();
         }
 
@@ -194,7 +228,7 @@ namespace SharpCreator
             _d3dImage.Lock();
             _d3dImage.SetBackBuffer(D3DResourceType.IDirect3DSurface9, _backBuffer.NativePointer);
             _d3dImage.AddDirtyRect(new Int32Rect(0, 0, (int)Width, (int)Height));
-             _d3dImage.Unlock();
+            _d3dImage.Unlock();
         }
 
         protected override void OnRender(System.Windows.Media.DrawingContext drawingContext)
@@ -212,36 +246,5 @@ namespace SharpCreator
             _d3d?.Dispose();
             base.OnClosed(e);
         }
-
-        private void MainWindow_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (e.RightButton == System.Windows.Input.MouseButtonState.Pressed)
-            {
-                _isRightMouseButtonDown = true;
-                _lastMousePosition = e.GetPosition(this);
-            }
-        }
-
-        private void MainWindow_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (e.RightButton == System.Windows.Input.MouseButtonState.Released)
-            {
-                _isRightMouseButtonDown = false;
-            }
-        }
-
-        private void MainWindow_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
-        {
-            if (_isRightMouseButtonDown)
-            {
-                var currentPosition = e.GetPosition(this);
-                var deltaX = (float)(currentPosition.X - _lastMousePosition.X);
-                var deltaY = (float)(currentPosition.Y - _lastMousePosition.Y);
-                _camera.Rotate(deltaX * 0.01f, deltaY * 0.01f);
-                _lastMousePosition = currentPosition;
-                Render();
-            }
-        }
-
     }
 }
